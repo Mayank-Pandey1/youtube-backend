@@ -17,4 +17,10 @@ app.use(cookieParser())    //use to perform CRUD operations on user browser's co
                             //(there are some ways using whcih we can keep secure cookies in user's browser, those cookies can only be accessed by server)
 
 
+//routes import
+import userRouter from "./routes/user.routes.js"
+
+//routes declaration
+app.use("/api/v1/users", userRouter)
+
 export default app;
