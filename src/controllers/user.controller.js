@@ -25,12 +25,17 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     //now we have to contact with database, so we can use the model because it is created using mongoose
-    const existingUser = User.findOne({ $or: [username, email] })
+    const existingUser = await User.findOne({ $or:  [{ username }, { email }] })
     if(existingUser) throw new ApiError(409, "User already exists")
 
     //checking if images are available
     const avatarImageLocalPath = req.files?.avatar[0]?.path;
-    const coverImageLocalPath = req.files?.coverImage[0]?.path;
+    //const coverImageLocalPath = req.files?.coverImage[0]?.path;
+
+    let coverImageLocalPath;
+    if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
+        coverImageLocalPath = req.files?.coverImage[0]?.path;
+    }
 
     if(!avatarImageLocalPath) throw new ApiError(400, "Avatar image is required")
 
@@ -38,7 +43,7 @@ const registerUser = asyncHandler(async (req, res) => {
     const avatarImage = await uploadOnCloudinary(avatarImageLocalPath)
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
 
-    if(!avatar) throw new ApiError(400, "Avatar not found")
+    if(!avatarImage) throw new ApiError(400, "Avatar not found")
     
     //create entry in database
     const user = await User.create({
