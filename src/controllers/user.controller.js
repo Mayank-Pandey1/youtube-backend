@@ -48,7 +48,7 @@ const registerUser = asyncHandler(async (req, res) => {
     const avatarImageLocalPath = req.files?.avatar[0]?.path;
     //const coverImageLocalPath = req.files?.coverImage[0]?.path;
 
-    let coverImageLocalPath;
+    let coverImageLocalPath;     //setting coverImage is not manadatory while account creation
     if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
         coverImageLocalPath = req.files?.coverImage[0]?.path;
     }
@@ -161,4 +161,83 @@ const refreshAccessToken = asyncHandler (async (req, res) => {
               .json(new ApiResponse(200, {accessToken, refreshToken: newRefreshToken}, "Access token refreshed successfully"))
 })
 
-export {registerUser, loginUser, logoutUser, refreshAccessToken}
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+    const {oldPassword, newPassword} = req.body;
+
+    const user = await User.findById(req.user?._id)
+    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
+    if(!isPasswordCorrect) throw new ApiError(400, "Invalid Password")
+
+    user.password = newPassword
+    await user.save({validateBeforeSave: false})
+
+    return res.status(200).json(new ApiResponse(200, {}, "Password changed successfully"))
+})
+
+const getCurrentUser = asyncHandler(async (req, res) => {
+    return res.status(200)
+              .json(200, req.user, "Current user fetched successfully")
+})
+
+const updateAccountDetails = asyncHandler (async (req, res) => {
+    const {fullname, email, username} = req.body
+
+    if(!fullname || !email) {
+        throw new ApiError(400, "All fields are required")
+    }
+
+    const user = User.findByIdAndUpdate(req.user?._id,
+                           {
+                            $set: {
+                                fullname: fullname,
+                                email: email,
+                                username      
+                            }
+                           },
+                           {new: true}   //the updated information is returned
+                          ).select("-password -refreshToken")
+
+    return res.status(200)
+              .json(new ApiResponse(200, user, "Account updated successfully"))
+})
+
+const updateAvatarImage = asyncHandler (async (req, res) => {
+    const avatarImageLocalPath = req.file?.path
+
+    if(!avatarImageLocalPath) throw new ApiError(400, "Avatar image not found")
+
+    const avatarImage = await uploadOnCloudinary(avatarImageLocalPath)
+
+    if(!avatarImage.url) throw new ApiError("Avatar Image not found for upload on cloudinary")
+
+    const user = await User.findByIdAndUpdate(req.user._id, 
+                                            {  
+                                                $set: {
+                                                    avatar: avatarImage.url    
+                                                }
+                                            }, {new: true})
+
+    return res.status(200)
+              .json(new ApiResponse(200, {user}, "Avatar image updated successfully"))
+})
+
+const updateCoverImage = asyncHandler( async (req, res) => {
+    const coverImageLocalPath = req.file?.path
+    if(!coverImageLocalPath) throw new ApiError("Cover Image not found")
+
+    const coverImage = await uploadOnCloudinary(coverImageLocalPath)
+
+    if(!coverImage) throw new ApiError("Error while uploading cover image for update")
+        
+    const user = await User.findByIdAndUpdate(req.user._id, 
+                                              {
+                                                $set: {
+                                                    coverImage: coverImage.url || ""
+                                                }
+                                              }, {new: true})
+
+    return res.status(200)
+              .json(new ApiResponse(200, {user}, "Cover image updated successfully"))
+})
+
+export {registerUser, loginUser, logoutUser, refreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails, updateAvatarImage, updateCoverImage}

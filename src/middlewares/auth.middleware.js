@@ -5,7 +5,7 @@ import { User } from "../models/user.models.js";
 
 export const verifyJWT = asyncHandler(async (req, _, next) => {   //verifying if user is logged in
     try {
-        const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "")   //if sending throug android application
+        const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "")   //if sending through android application
 
         if(!token) throw new ApiError(401, "Unauthorized Request")
     
