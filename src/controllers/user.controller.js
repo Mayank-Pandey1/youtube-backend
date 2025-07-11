@@ -4,6 +4,7 @@ import {User} from "../models/user.models.js"
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import mongoose from "mongoose";
+import jwt from "jsonwebtoken"
 
 const generateAccessAndRefreshToken = async (userId) => {
     try {
@@ -122,7 +123,7 @@ const loginUser = asyncHandler( async (req, res) => {
 
 const logoutUser = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(req.user._id,        //we designed auth middleware to get access to req.user
-                          {$set: {refreshToken: undefined}},
+                          {$unset: {refreshToken: 1}},   //this removes the field from document
                           {new: true})
     
     const options = {
@@ -138,7 +139,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 
 const refreshAccessToken = asyncHandler (async (req, res) => {
     const incomingRefreshToken = req.cookies?.refreshToken || req.header("Authorization")?.replace("Bearer ", "")   //if sending through android application
-    
+    console.log(incomingRefreshToken)
     if(!incomingRefreshToken) throw new ApiError(401, "Unauthorized Request")
         
     const decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET)    //the decoded token is actually a payload which will have id
@@ -149,7 +150,7 @@ const refreshAccessToken = asyncHandler (async (req, res) => {
 
     if(incomingRefreshToken !== user?.refreshToken) throw new ApiError(401, "Refresh token is expired or used")
     
-    const {accessToken, newRefreshToken} = await generateAccessAndRefreshToken(user._id)
+    const {accessToken, refreshToken} = await generateAccessAndRefreshToken(user._id)
 
     const options = {
         httpOnly: true,
@@ -158,8 +159,8 @@ const refreshAccessToken = asyncHandler (async (req, res) => {
     
     return res.status(200)
               .cookie("accessToken", accessToken, options)
-              .cookie("refreshToken", newRefreshToken, options)
-              .json(new ApiResponse(200, {accessToken, refreshToken: newRefreshToken}, "Access token refreshed successfully"))
+              .cookie("refreshToken", refreshToken, options)
+              .json(new ApiResponse(200, {accessToken, refreshToken}, "Access token refreshed successfully"))
 })
 
 const changeCurrentPassword = asyncHandler(async (req, res) => {
@@ -177,7 +178,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 
 const getCurrentUser = asyncHandler(async (req, res) => {
     return res.status(200)
-              .json(200, req.user, "Current user fetched successfully")
+              .json(new ApiResponse(200, req.user, "Current user fetched successfully"))
 })
 
 const updateAccountDetails = asyncHandler (async (req, res) => {
@@ -245,7 +246,7 @@ const getUserChannelProfile = asyncHandler( async (req, res) => {
     const {username} = req.params
     if(!username?.trim()) throw new ApiError("Username not found")
     
-    const channel = User.aggregate([
+    const channel = await User.aggregate([
                             {
                                 $match: {username: username?.toLowerCase()}
                             },
