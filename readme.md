@@ -45,14 +45,14 @@ npm run dev
 
 The server will be running on http://localhost:3000. You can use tools like Postman to test the API endpoints.
 
-### Contributing
+### Contributing:
 
 Contributions are welcome! If you would like to contribute to this project, please follow these steps:
 
 1 - Fork the repository.                                                                             
-2 - Create a new branch (git checkout -b feature/YourFeature).
-3 - Make your changes and commit them (git commit -m 'Add some feature').
-4 - Push to the branch (git push origin feature/YourFeature).
+2 - Create a new branch (git checkout -b feature/YourFeature).                                   
+3 - Make your changes and commit them (git commit -m 'Add some feature').                                  
+4 - Push to the branch (git push origin feature/YourFeature).                                    
 5 - Open a pull request.
 
 ### Model diagram for all the models and relations
